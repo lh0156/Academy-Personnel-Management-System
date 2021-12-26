@@ -1,0 +1,207 @@
+B-07 시험 관련 업무
+
+--특정 개설 과정을 선택하는 경우 등록된 개설 과목 정보를 출력하고, 개설 과목 별로 성적 등록 여부, 시험 문제 파일 등록 여부를 확인할 수 있어야한다.
+
+--프로시저
+create or replace procedure proTestinfo(
+    mclassname varchar2 := ''
+)
+is
+    jname tblsubject.name%type;
+    hstart_date tbllsubject.start_date%type;
+    hend_date tbllsubject.end_date%type;
+    a1 varchar2(1);
+    a2 varchar2(1);
+    fname tblclass.name%type;
+    cursor vcursor is 
+select
+    DISTINCT j.name as 과목,
+    h.start_date as 시작일,
+    h.end_date as 종료일,
+    (case when d.score is not null then 'Y' else 'N' end) as 성적등록여부,
+    (case when i.question is not null then 'Y' else 'N' end) as 시험문제등록여부,
+    f.name as 과정명
+from tblsugang a
+    inner join tblstudent b on a.student_seq = b.student_seq
+    inner join tbltestscore d on a.sugang_seq = d.sugang_seq
+    inner join tbllclass e on a.lclass_seq = e.lclass_seq
+    inner join tblclass f on e.class_seq = f.class_seq
+    inner join tblclassroom g on e.classroom_seq = g.classroom_seq
+    inner join tbllsubject h on e.lclass_seq = h.lclass_seq
+    inner join tbltest i on h.lsubject_seq = i.lsubject_seq and d.test_seq = i.test_seq  
+    inner join tblsubject j on h.subject_seq = j.subject_seq
+ 
+where f.name like '%'||mclassname||'%'
+order by h.start_date ;
+
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into jname, hstart_date, hend_date, a1, a2, fname;
+            exit when vcursor%notfound;
+			
+			dbms_output.put_line('====================================================================================');
+			dbms_output.put_line('과정명:'|| fname || '   과목:'|| jname || '   과목시작일:'|| hstart_date ||
+								 '   과목종료일:'|| hend_date || '   성적등록여부:'|| a1 || '   시험문제등록여부:'|| a2);
+
+        end loop;
+    close vcursor;
+end;
+
+begin
+	--proTestinfo('개설과정명');
+    proTestinfo();
+end;
+
+drop procedure proTestinfo;
+
+--과목별 출력시 개설 과정명, 개설 과정기간, 강의실명, 개설 과목명, 교사명 교재명 등을 출력하고, 해당 개설 과목을 수강한 모든 교육생들의 성적 정보(교육생 이름, 주민번호 뒷자리,필기,실기)를 같이 출력한다
+
+--프로시저
+create or replace procedure proTestscoreinfo(
+    msubjectname VARCHAR2 :=''
+)
+is
+    ename tblclass.name%type;
+    dstartclassdate tbllclass.startclassdate%type;
+    dfinishclassdate tbllclass.finishclassdate%type;
+    jname tblclassroom.name%type;
+    gname tblsubject.name%type;
+    iname tblteacher.name%type;
+    hname tblBookName.name%type;
+    aname tblstudent.name%type;
+    assn tblstudent.ssn%type;
+    pscore tbltestscore.score%type;  
+    sscore tbltestscore.score%type; 
+    cursor vcursor is 
+select
+    e.name as 과정명,
+    d.startclassdate as 과정시작일,
+    d.finishclassdate as 과정종료일,
+    j.name as 강의실명,
+    g.name as 과목,
+    i.name as 교사명,
+    h.name as 교재명,
+    a.name as 교육생,
+    a.ssn as 주민번호뒷자리,
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '필기' and subjectName = g.name and rownum<=1) as "필기점수",
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '실기' and subjectName = g.name and rownum<=1) as "실기점수"
+from tblstudent a
+    inner join tblsugang b on a.student_seq = b.student_seq
+    inner join tbllclass d on b.lclass_seq = d.lclass_seq
+    inner join tblclass e on d.class_seq = e.class_seq
+    inner join tbllsubject f on d.lclass_seq = f.lclass_seq
+    inner join tblsubject g on f.subject_seq = g.subject_seq
+    inner join tblbookname h on f.bookname_seq = h.bookname_seq
+    inner join tblteacher i on f.teacher_seq = i.teacher_seq
+    inner join tblclassroom j on d.classroom_seq = j.classroom_seq
+    
+where g.name like '%'||msubjectname||'%'
+order by d.startclassdate ;
+
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into ename, dstartclassdate, dfinishclassdate, jname,
+                  gname, iname, hname, aname, assn, pscore, sscore  ;
+            exit when vcursor%notfound;
+ 
+            dbms_output.put_line('====================================================================================');   
+            dbms_output.put_line('과정명:'|| gname || '   과정시작일:'|| dstartclassdate || '   과정종료일:'|| dfinishclassdate ||
+                                 '   강의실명:'|| jname || '   과목명:'|| gname || '   교사명:'|| iname || '   교재명:'|| hname ||
+                                 '   교육생:'|| aname || '   주민번호뒷자리:'|| substr(assn,7) || '   필기:'|| pscore ||'점' ||
+                                 '   실기:'|| sscore ||'점');
+        end loop;
+    close vcursor;
+end;
+
+begin
+	--proTestscoreinfo('과목명');
+    proTestscoreinfo();
+end;
+
+drop procedure proTestscoreinfo;
+
+-- 교육생 개인별 출력시 교육생 이름, 주민번호 뒷자리, 개설 과정명, 개설 과정기간, 교사명, 출력, 필기, 실기)를 같이 출력한다.                                                 
+                                              
+
+--프로시저
+create or replace procedure procStestscoreinfo(
+    bstudentname varchar2 := ''
+)
+is
+    bname tblstudent.name%type;
+    bssn tblstudent.ssn%type;
+    fname tblclass.name%type;
+    estartclassdate tbllclass.startclassdate%type;
+    efinishclassdate tbllclass.finishclassdate%type;
+    kname tblteacher.name%type;
+    pscore tbltestscore.score%type;  
+    sscore tbltestscore.score%type;
+    cursor vcursor is 
+select
+    a.name as 교육생,
+    a.ssn as 주민번호뒷자리,
+    e.name as 과정명,
+    d.startclassdate as 과정시작일,
+    d.finishclassdate as 과정종료일,
+    i.name as 교사이름,
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '필기' and subjectName = g.name and rownum<=1) as "필기점수",
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '실기' and subjectName = g.name and rownum<=1) as "실기점수"
+from tblstudent a
+    inner join tblsugang b on a.student_seq = b.student_seq
+    inner join tbllclass d on b.lclass_seq = d.lclass_seq
+    inner join tblclass e on d.class_seq = e.class_seq
+    inner join tbllsubject f on d.lclass_seq = f.lclass_seq
+    inner join tblsubject g on f.subject_seq = g.subject_seq
+    inner join tblbookname h on f.bookname_seq = h.bookname_seq
+    inner join tblteacher i on f.teacher_seq = i.teacher_seq
+    
+where a.name like '%'||bstudentname||'%' ;
+
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into bname, bssn, fname, estartclassdate, efinishclassdate,kname,
+                  pscore, sscore ;
+            exit when vcursor%notfound;
+
+                        
+            dbms_output.put_line('====================================================================================');     
+            dbms_output.put_line('교육생:'|| bname || '   주민번호뒷자리:'|| substr(bssn,7) || '   과정명:'|| fname ||
+                                 '   과정시작일:'|| estartclassdate || '   과정종료일:'|| efinishclassdate ||
+                                 '   교사명:'|| kname || '   필기:'|| pscore ||'점' || '   실기:'|| sscore ||'점');
+
+        end loop;
+    close vcursor;
+end;
+
+begin
+	--procStestscoreinfo('교육생');
+    procStestscoreinfo();
+end;
+
+drop procedure procStestscoreinfo;
+
+--view
+
+CREATE OR REPLACE VIEW vwScore
+as
+(select 
+    su.sugang_seq as sugang_seq,
+    s.name as subjectName,
+    test.kind_of as kind_of,
+    ts.score as score,
+    ts.testdate as testDate,
+    test.question
+from tblstudent stu inner join tblsugang su on stu.student_seq = su.student_seq
+                    inner join tbllclass lc on lc.lclass_seq = su.lclass_seq
+                    inner join tblclass c on c.class_seq = lc.class_seq
+                    inner join tbllsubject ls on ls.lclass_seq = lc.lclass_seq
+                    inner join tblsubject s on s.subject_seq = ls.subject_seq
+                    inner join tblbookname B on b.bookname_seq = ls.bookname_seq
+                    inner join tblteacher T on t.teacher_seq = ls.teacher_seq
+                    inner join tbltest test on test.lsubject_seq = ls.lsubject_seq
+                    left outer join tbltestscore ts on ts.test_seq=test.test_seq and ts.sugang_seq = su.sugang_seq);
+
+===================================================================

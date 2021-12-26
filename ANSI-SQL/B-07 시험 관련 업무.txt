@@ -1,0 +1,86 @@
+B-07 시험 관련 업무
+
+select
+    DISTINCT j.name as 과목,
+    h.start_date as 시작일,
+    h.end_date as 종료일,
+    (case when d.score is not null then 'Y' else 'N' end) as 성적등록여부,
+    (case when i.question is not null then 'Y' else 'N' end) as 시험문제등록여부,
+    f.name as 과정명
+from tblsugang a
+    inner join tblstudent b on a.student_seq = b.student_seq
+    inner join tbltestscore d on a.sugang_seq = d.sugang_seq
+    inner join tbllclass e on a.lclass_seq = e.lclass_seq
+    inner join tblclass f on e.class_seq = f.class_seq
+    inner join tblclassroom g on e.classroom_seq = g.classroom_seq
+    inner join tbllsubject h on e.lclass_seq = h.lclass_seq
+    inner join tbltest i on h.lsubject_seq = i.lsubject_seq and d.test_seq = i.test_seq  
+    inner join tblsubject j on h.subject_seq = j.subject_seq
+ 
+
+--과목별 출력시 개설 과정명, 개설 과정기간, 강의실명, 개설 과목명, 교사명 교재명 등을 출력하고, 해당 개설 과목을 수강한 모든 교육생들의 성적 정보(교육생 이름, 주민번호 뒷자리,필기,실기)를 같이 출력한다
+
+select
+    e.name as 과정명,
+    d.startclassdate as 과정시작일,
+    d.finishclassdate as 과정종료일,
+    j.name as 강의실명,
+    g.name as 과목,
+    i.name as 교사명,
+    h.name as 교재명,
+    a.name as 교육생,
+    a.ssn as 주민번호뒷자리,
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '필기' and subjectName = g.name and rownum<=1) as "필기점수",
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '실기' and subjectName = g.name and rownum<=1) as "실기점수"
+from tblstudent a
+    inner join tblsugang b on a.student_seq = b.student_seq
+    inner join tbllclass d on b.lclass_seq = d.lclass_seq
+    inner join tblclass e on d.class_seq = e.class_seq
+    inner join tbllsubject f on d.lclass_seq = f.lclass_seq
+    inner join tblsubject g on f.subject_seq = g.subject_seq
+    inner join tblbookname h on f.bookname_seq = h.bookname_seq
+    inner join tblteacher i on f.teacher_seq = i.teacher_seq
+    inner join tblclassroom j on d.classroom_seq = j.classroom_seq
+    
+
+-- 교육생 개인별 출력시 교육생 이름, 주민번호 뒷자리, 개설 과정명, 개설 과정기간, 교사명, 출력, 필기, 실기)를 같이 출력한다.                                                 
+                                              
+
+select
+    a.name as 교육생,
+    a.ssn as 주민번호뒷자리,
+    e.name as 과정명,
+    d.startclassdate as 과정시작일,
+    d.finishclassdate as 과정종료일,
+    i.name as 교사이름,
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '필기' and subjectName = g.name and rownum<=1) as "필기점수",
+    (select score from vwscore where sugang_seq = b.sugang_seq and kind_of = '실기' and subjectName = g.name and rownum<=1) as "실기점수"
+from tblstudent a
+    inner join tblsugang b on a.student_seq = b.student_seq
+    inner join tbllclass d on b.lclass_seq = d.lclass_seq
+    inner join tblclass e on d.class_seq = e.class_seq
+    inner join tbllsubject f on d.lclass_seq = f.lclass_seq
+    inner join tblsubject g on f.subject_seq = g.subject_seq
+    inner join tblbookname h on f.bookname_seq = h.bookname_seq
+    inner join tblteacher i on f.teacher_seq = i.teacher_seq
+   
+--view
+
+CREATE OR REPLACE VIEW vwScore
+as
+(select 
+    su.sugang_seq as sugang_seq,
+    s.name as subjectName,
+    test.kind_of as kind_of,
+    ts.score as score,
+    ts.testdate as testDate,
+    test.question
+from tblstudent stu inner join tblsugang su on stu.student_seq = su.student_seq
+                    inner join tbllclass lc on lc.lclass_seq = su.lclass_seq
+                    inner join tblclass c on c.class_seq = lc.class_seq
+                    inner join tbllsubject ls on ls.lclass_seq = lc.lclass_seq
+                    inner join tblsubject s on s.subject_seq = ls.subject_seq
+                    inner join tblbookname B on b.bookname_seq = ls.bookname_seq
+                    inner join tblteacher T on t.teacher_seq = ls.teacher_seq
+                    inner join tbltest test on test.lsubject_seq = ls.lsubject_seq
+                    left outer join tbltestscore ts on ts.test_seq=test.test_seq and ts.sugang_seq = su.sugang_seq);

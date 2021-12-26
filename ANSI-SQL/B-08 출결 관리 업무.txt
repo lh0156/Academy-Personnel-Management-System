@@ -1,0 +1,20 @@
+B-08 출결 관리 업무
+출결 현황을 기간별(년, 월, 일) 조회할 수 있어야 한다.
+특정(특정 과정, 특정 인원) 출결 현황을 조회할 수 있어야 한다.
+모든 출결 조회는 근태 상황을 구분할 수 있어야 한다. (정상, 지각, 조퇴, 외출, 병가, 기타,)
+
+
+select
+    d.name,
+    e.totalnum,
+    f.name,
+    b.absence_type,
+    b.attendence_date
+from (tblSugang a
+    inner join tblAttendence b on a.sugang_seq = b.sugang_seq
+    inner join tblLClass c on a.lclass_seq = c.lclass_seq
+    inner join tblclass d on c.class_seq = d.class_seq
+    inner join tblclassroom e on c.classroom_seq = e.classroom_seq
+    inner join tblstudent f on a.student_seq = f.student_seq )
+where b.attendence_date between to_date(mstartdate,'yyyy-mm-dd') AND to_date(menddate,'yyyy-mm-dd')
+

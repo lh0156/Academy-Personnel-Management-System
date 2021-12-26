@@ -1,0 +1,28 @@
+B-11 코로나 대면 비대면 여부 확인
+--관리자는 선생님과 학생들의 대면 비대면 여부를 확인할 수 있다.
+--학생
+
+select
+    c.name as 이름,
+    a.facetoface as 대면여부,
+    a.attendance as 출석날짜,
+    e.name as 과정명
+from tblCovids a
+        inner join tblsugang b on a.sugang_seq = b.sugang_seq
+		inner join tblstudent c on b.student_seq = c.student_seq
+        inner join tblLClass d on b.lclass_seq = d.lclass_seq
+        inner join tblclass e on e.class_seq = d.class_seq
+        inner join tblclassroom f on d.classroom_seq = f.classroom_seq
+
+--교사
+
+select
+    b.name as 이름,
+    a.facetoface as 대면여부,
+    a.attendance as 출석날짜,
+    e.name as 과정명
+from tblCovidt a
+        inner join tblteacher b on a.teacher_seq = b.teacher_seq
+        inner join (select distinct Teacher_Seq, lclass_seq from tbllsubject) c on b.teacher_seq = c.teacher_seq
+        inner join tbllclass d on c.lclass_seq = d.lclass_seq
+        inner join tblclass e on d.class_seq = e.class_seq

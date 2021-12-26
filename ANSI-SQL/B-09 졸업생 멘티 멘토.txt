@@ -1,0 +1,161 @@
+B-09 졸업생 멘티 멘토	 
+졸업생 정보를 조회할 수 있어야 한다.
+관리자는 현재 수강중인 과정의 1인당 멘토 1명씩 배정하게 한다.
+ 
+--프로시저
+--졸업생조회
+create or replace procedure proGraduateinfo(
+    mtblGraduatename varchar2 := ''
+)
+is
+    aGraduate_seq tblGraduate.Graduate_seq%type;
+    aname tblGraduate.name%type;
+    aid tblGraduate.id%type;
+    alast_ssn tblGraduate.last_ssn%type;
+    aphoneNumber tblGraduate.phoneNumber%type;
+    acomplationdate tblGraduate.complationdate%type;
+    aemployment tblGraduate.employment%type;
+    asalary tblGraduate.salary%type;
+    asugang_Seq tblGraduate.sugang_Seq%type;
+    cursor vcursor is 
+select
+    a.Graduate_seq,
+    a.name,
+    a.id,
+    a.last_ssn,
+    a.phoneNumber,
+    a.complationdate,
+    a.employment,
+    a.salary,
+    a.sugang_Seq
+from tblGraduate a
+where a.name like '%'||mtblGraduatename||'%';
+
+begin   
+    open vcursor; 
+        loop
+            fetch vcursor into aGraduate_seq, aname, aid, alast_ssn,aphoneNumber,acomplationdate,
+                   aemployment, asalary, asugang_Seq ;
+            exit when vcursor%notfound;
+          
+            dbms_output.put_line('====================================================================================');   
+            dbms_output.put_line('졸업생번호:' || aGraduate_seq || '   이름:' || aname || '   아이디:' || aid || '   주민번호뒷자리:' || alast_ssn ||
+                                 '   전화번호:' || aphoneNumber || '   수료날짜:' || acomplationdate || '   취업처:' || aemployment ||
+                                 '   연봉:' || asalary || '   수강신청번호:' || asugang_Seq);        
+            
+        end loop;
+    close vcursor;
+end;
+
+begin
+    --proGraduateinfo('졸업생');
+    proGraduateinfo('김멘토');
+end;
+
+drop procedure proGraduateinfo;
+
+
+
+
+--멘토조회
+create or replace procedure proMentoringinfo(
+    mGraduatename varchar2 := '',
+    mstudentname varchar2 := ''
+)
+is
+    fname tblgraduate.name%type;
+    bname tblstudent.name%type;
+    dname tblclass.name%type;
+   
+    cursor vcursor is 
+select
+    f.name ,
+    b.name ,
+    d.name 
+from (tblSugang a
+        inner join tblstudent b on a.student_seq = b.student_seq
+        inner join tblLClass c on a.lclass_seq = c.lclass_seq
+        inner join tblclass d on c.class_seq = d.class_seq
+        inner join tblclassroom e on c.classroom_seq = e.classroom_seq)
+        inner join tblmentoring g on b.student_seq = g.student_seq
+        inner join tblgraduate f on g.graduate_seq = f.graduate_seq
+where f.name like '%'||mGraduatename||'%' and b.name like '%'||mstudentname||'%' ;
+
+begin
+           
+    open vcursor; 
+        loop
+            fetch vcursor into fname, bname, dname;
+            exit when vcursor%notfound;
+            
+            dbms_output.put_line('====================================================================================');   
+            dbms_output.put_line('졸업생:' || fname || '   교육생: ' || bname || '   과정명:' || dname );        
+            
+        end loop;
+    close vcursor;
+end;
+
+begin
+    -- proMentoringinfo('졸업생','교육생');
+    proMentoringinfo('','김규석');
+end;
+
+drop procedure proMentoringinfo;
+
+
+
+
+--관리자는 현재 수강중인 과정의 1인당 멘토 1명씩 배정하게 한다.
+
+select * from tblmentoring
+
+create or replace procedure proMentoringAdd(
+    mgname VARCHAR2,   
+    msname VARCHAR2
+)
+is
+begin
+    insert into tblmentoring a (a.mento_seq, a.graduate_seq,a.student_seq)
+    values (
+        (SELECT NVL(MAX(mento_seq)+1,0) from tblmentoring),
+        (select vg.graduate_seq from vGraduateseq vg where vg.name = mgname),
+        (select vs.student_seq from vStudentseq vs where vs.name =msname) );        
+end;
+
+commit;
+rollback;
+
+begin
+    proMentoringAdd('조마나','김규석');
+end;
+
+drop procedure proMentoringAdd;
+-- view
+CREATE OR REPLACE VIEW vStudentseq AS
+select
+    g.student_seq,
+    b.name
+from (tblSugang a
+        inner join tblstudent b on a.student_seq = b.student_seq
+        inner join tblLClass c on a.lclass_seq = c.lclass_seq
+        inner join tblclass d on c.class_seq = d.class_seq
+        inner join tblclassroom e on c.classroom_seq = e.classroom_seq)
+        inner join tblmentoring g on b.student_seq = g.student_seq
+        inner join tblgraduate f on g.graduate_seq = f.graduate_seq;
+		
+drop view vStudentseq;
+
+CREATE OR REPLACE VIEW vGraduateseq AS
+select
+    f.graduate_seq,
+    f.name
+from (tblSugang a
+        inner join tblstudent b on a.student_seq = b.student_seq
+        inner join tblLClass c on a.lclass_seq = c.lclass_seq
+        inner join tblclass d on c.class_seq = d.class_seq
+        inner join tblclassroom e on c.classroom_seq = e.classroom_seq)
+        inner join tblmentoring g on b.student_seq = g.student_seq
+        inner join tblgraduate f on g.graduate_seq = f.graduate_seq;
+
+drop view vGraduateseq;		
+===============================================================================================

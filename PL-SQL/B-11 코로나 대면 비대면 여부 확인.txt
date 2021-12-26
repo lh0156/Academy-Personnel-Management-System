@@ -1,0 +1,89 @@
+B-11 코로나 대면 비대면 여부 확인
+--관리자는 선생님과 학생들의 대면 비대면 여부를 확인할 수 있다.
+--학생
+--프로시저
+create or replace procedure procCovidsinfo(
+    mstudent varchar :=''
+)
+
+is
+    cname tblstudent.name%type;
+    afacetoface tblcovids.facetoface%type;
+    aattendance tblcovids.attendance%type;
+    ename tblclass.name%type;
+    cursor vcursor is 
+select
+    c.name as 이름,
+    a.facetoface as 대면여부,
+    a.attendance as 출석날짜,
+    e.name as 과정명
+from tblCovids a
+        inner join tblsugang b on a.sugang_seq = b.sugang_seq
+		inner join tblstudent c on b.student_seq = c.student_seq
+        inner join tblLClass d on b.lclass_seq = d.lclass_seq
+        inner join tblclass e on e.class_seq = d.class_seq
+        inner join tblclassroom f on d.classroom_seq = f.classroom_seq
+where c.name like '%'||mstudent||'%';
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into cname, afacetoface , aattendance, ename;
+            exit when vcursor%notfound;
+	dbms_output.put_line('==============================================================================================');	
+            dbms_output.put_line('교육생:' || cname || '   대면여부:' || afacetoface || '   날짜:' || aattendance || '   과정명:' || ename);        
+
+        end loop;
+    close vcursor;
+end;
+
+begin
+    --procCovidsinfo('교육생')
+    procCovidsinfo('김규석');
+end;
+
+drop procedure procCovidsinfo;
+
+--교사
+--프로시저
+create or replace procedure procTcCovidtinfo(
+    mteacher varchar2 := ''
+)
+
+is
+    bname tblteacher.name%type;
+    afacetoface tblcovids.facetoface%type;
+    aattendance tblcovids.attendance%type;
+    ename tblclass.name%type;
+    cursor vcursor is 
+select
+    b.name as 이름,
+    a.facetoface as 대면여부,
+    a.attendance as 출석날짜,
+    e.name as 과정명
+from tblCovidt a
+        inner join tblteacher b on a.teacher_seq = b.teacher_seq
+        inner join (select distinct Teacher_Seq, lclass_seq from tbllsubject) c on b.teacher_seq = c.teacher_seq
+        inner join tbllclass d on c.lclass_seq = d.lclass_seq
+        inner join tblclass e on d.class_seq = e.class_seq
+where b.name like '%'||mteacher||'%';
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into bname, afacetoface, aattendance, ename;
+            exit when vcursor%notfound;
+dbms_output.put_line('==============================================================================================');	
+            dbms_output.put_line('교사이름:' || bname || '   대면여부:' || afacetoface || '   날짜:' || aattendance ||
+                                 '   과정명:'|| ename);        
+
+        end loop;
+    close vcursor;
+end;
+
+begin
+    --procTcCovidtinfo('교사')
+    procTcCovidtinfo();
+end;
+
+drop procedure procTcCovidtinfo;
+
+===========================================================================================

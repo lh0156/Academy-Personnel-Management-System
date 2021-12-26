@@ -1,0 +1,60 @@
+B-08 출결 관리 업무
+출결 현황을 기간별(년, 월, 일) 조회할 수 있어야 한다.
+특정(특정 과정, 특정 인원) 출결 현황을 조회할 수 있어야 한다.
+모든 출결 조회는 근태 상황을 구분할 수 있어야 한다. (정상, 지각, 조퇴, 외출, 병가, 기타,)
+
+--프로시저
+--년월일단위
+create or replace procedure proAttendenceinfo(
+     mclassname varchar2 := '',
+     mstudentname varchar2 := '',
+     mstartdate varchar2 := '0001-01-01',
+     menddate varchar2 := '9999-12-31'
+     
+)
+is
+    dname tblclass.name%type;
+    etotalnum tblclassroom.totalnum%type;
+    fname tblstudent.name%type;
+    babsence_type tblAttendence.absence_type%type;
+    battendence_date tblAttendence.attendence_date%type;
+    cursor vcursor is 
+select
+    d.name,
+    e.totalnum,
+    f.name,
+    b.absence_type,
+    b.attendence_date
+from (tblSugang a
+    inner join tblAttendence b on a.sugang_seq = b.sugang_seq
+    inner join tblLClass c on a.lclass_seq = c.lclass_seq
+    inner join tblclass d on c.class_seq = d.class_seq
+    inner join tblclassroom e on c.classroom_seq = e.classroom_seq
+    inner join tblstudent f on a.student_seq = f.student_seq )
+where b.attendence_date between to_date(mstartdate,'yyyy-mm-dd') AND to_date(menddate,'yyyy-mm-dd')
+        and d.name like '%'||mclassname||'%' and f.name like '%'||mstudentname||'%'
+order by b.attendence_date;
+
+begin         
+    open vcursor; 
+        loop
+            fetch vcursor into dname, etotalnum, fname, babsence_type,battendence_date;
+            exit when vcursor%notfound;
+ 
+            dbms_output.put_line('====================================================================================');   
+            dbms_output.put_line('과정명:'|| dname || '   교육생:'|| fname || '   근태:'|| babsence_type || '   날짜:'|| battendence_date);           
+
+        end loop;
+
+    close vcursor;
+end;
+
+begin
+	--proAttendenceinfo('과정명','교육생','시작날짜','종료일자');
+    proAttendenceinfo('','','20211130','20211231');
+end; 
+
+drop procedure proAttendenceinfo;
+
+
+===============================================================================================	 

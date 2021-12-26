@@ -1,0 +1,14 @@
+B-12 졸업생 취업현황
+--관리자는 졸업생의 취업 현황을 조회할 수 있다.
+--관리자는 해당 자료를 교육생의 취업 지원 보조 용도로 활용할 수 있다.
+
+select
+    a.name as 이름,
+    a.complationdate as 수료날짜,
+    a.employment as 취업처,
+    d.name 과정명
+from tblGraduate a
+    inner join tblsugang b on a.sugang_seq = b.sugang_seq
+    inner join tblLClass c on b.lclass_seq = c.lclass_seq
+    inner join tblclass d on c.class_seq = d.class_seq
+    inner join tblclassroom e on c.classroom_seq = e.classroom_seq
